@@ -1,0 +1,95 @@
+#!/bin/bash
+
+:<<'COMMENT'
+Copyright (c) 2023 Austin Choi
+See end of file for extended copyright information
+COMMENT
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RESET='\033[0m'
+
+# Get current directory
+currentDirectory=$(pwd)
+
+# Get script directory
+cd "$(dirname "$0")/.."
+
+projectDirectory=$(pwd)
+
+cd ./tools
+
+scriptDirectory=$(pwd)
+
+# Get copyright information
+year=$(date "+%Y")
+
+# Project information for header and footer
+if [ ! -f "../.project.env" ]
+then
+    echo -e "${RED}ERROR${RESET}: .project.env does not exist.\nCreate a project using the following command: ${GREEN}create${RESET}"
+    exit 1
+fi
+
+source ../.project.env
+
+# Array storing each line to check for
+copyrightLines=("Copyright (C) ${year} ${projectAuthor}" "See end of file for extended copyright information" "${projectName}" "${projectDescription}")
+
+if [[ $licenseName == "All rights reserved" ]]
+then
+    copyrightLines+=("${licenseName}")
+else
+    copyrightLines+=("This code is licensed under the ${licenseName}" "Please see the LICENSE file in the root directory of this project for the full license details.")
+fi
+
+checkFileCopyright() {
+    for line in "${copyrightLines[@]}"
+    do
+        if ! fgrep -q "${line}" "${1}"
+        then
+            echo -e "${RED}ERROR${RESET}: Copyright not found in ${1}"
+            break
+        fi
+    done
+}
+
+traverseDirectories() {
+    local currentDir="$1"
+
+    for dir in "$currentDir"/*
+    do
+        if [ "$(basename "${dir}")" = "README.md" ] || [ "$(basename "${dir}")" = "LICENSE" ] || [[ "$(basename "${dir}")" == *.out ]] || [ "$(basename "${dir}")" = "makefile" ] || [[ "$(basename "${dir}")" == *.bf ]] || [[ "$(basename "${dir}")" == *.exe ]] || [[ "$(basename "${dir}")" == *.png ]]
+        then
+            continue
+        fi
+        # if [ ${dir} == "${readmeDirectory}/README.md" ] # || [ ${dir} == "${readmeDirectory}/*.out" ] || [ ${dir} == "${readmeDirectory}/makefile" ]
+        # then
+        #     continue
+        # fi
+        if [ -d "$dir" ] && [ ! "${dir}" == "${projectDirectory}/tools" ] && [ ! "${dir}" == "${projectDirectory}/sandbox" ]
+        then
+            traverseDirectories "$dir"
+        elif [ -f "$dir" ] 
+        then
+            checkFileCopyright $dir
+        fi
+    done
+}
+
+traverseDirectories "$projectDirectory"
+
+cd $currentDirectory
+
+:<<'COMMENT'
+Copyright (C) 2023 Austin Choi
+
+All Rights Reserved.
+This file is not under the license for the project and all rights are reserved to Austin Choi.
+
+This script will check every file inside of the project repository and make sure they all have relavent copyright information
+
+Repository of bash scripts for Austin Choi
+COMMENT
